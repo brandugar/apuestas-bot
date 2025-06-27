@@ -5,7 +5,7 @@ from apuestas import obtener_partidos, generar_senales
 import requests
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = "@PrediccionesBR4"  # tu canal
+CHANNEL_ID = "-1002600259944"  # tu canal
 
 
 def enviar_telegram(mensaje):
