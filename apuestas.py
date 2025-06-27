@@ -3,9 +3,8 @@
 import requests
 import datetime
 
-# Asegúrate de tener la variable de entorno BOT_TOKEN configurada
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
-# Ligas populares (códigos de The Odds API)
+
 LIGAS = [
     "soccer_epl",                        # Premier League (Inglaterra)
     "soccer_spain_la_liga",             # La Liga (España)
@@ -22,6 +21,7 @@ def obtener_partidos():
     partidos = []
 
     for liga in LIGAS:
+        print(f"🔎 Consultando {liga}...")
         url = f"https://api.the-odds-api.com/v4/sports/{liga}/odds/"
         params = {
             "apiKey": API_KEY,
@@ -39,9 +39,13 @@ def obtener_partidos():
         for match in data:
             fecha_partido = datetime.datetime.fromisoformat(
                 match['commence_time'].replace("Z", "+00:00")).date()
-            if fecha_partido == hoy:
+
+            if fecha_partido == hoy or fecha_partido == hoy + datetime.timedelta(days=1):
+                equipos = match["home_team"] + " vs " + match["away_team"]
+                print(f"✅ Partido: {equipos} - {match['commence_time']}")
                 partidos.append(match)
-                print(f"✅ Total partidos encontrados hoy: {len(partidos)}")
+
+    print(f"🎯 Total partidos encontrados: {len(partidos)}")
     return partidos
 
 
@@ -80,4 +84,5 @@ def generar_senales(partidos):
 🧠 Análisis: Favorito claro con cuota menor a 1.70.
 """)
 
+    print(f"📢 Señales generadas: {len(senales)}")
     return senales
