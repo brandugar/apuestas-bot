@@ -5,7 +5,7 @@ import datetime
 import os
 
 # Asegúrate de tener la variable de entorno BOT_TOKEN configurada
-API_KEY = os.getenv("BOT_TOKEN")
+API_KEY = "232daadb65fac91b4b7a607399ade0f7"
 # Ligas populares (códigos de The Odds API)
 LIGAS = [
     "soccer_epl",               # Premier League
