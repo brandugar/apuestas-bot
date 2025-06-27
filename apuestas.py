@@ -2,7 +2,6 @@
 
 import requests
 import datetime
-import os
 
 # Asegúrate de tener la variable de entorno BOT_TOKEN configurada
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
@@ -19,6 +18,7 @@ LIGAS = [
 
 
 def obtener_partidos():
+    hoy = datetime.datetime.utcnow().date()
     partidos = []
 
     for liga in LIGAS:
@@ -37,7 +37,10 @@ def obtener_partidos():
 
         data = res.json()
         for match in data:
-            partidos.append(match)
+            fecha_partido = datetime.datetime.fromisoformat(
+                match['commence_time'].replace("Z", "+00:00")).date()
+            if fecha_partido == hoy:
+                partidos.append(match)
 
     return partidos
 
