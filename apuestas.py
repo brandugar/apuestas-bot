@@ -41,7 +41,7 @@ def obtener_partidos():
                 match['commence_time'].replace("Z", "+00:00")).date()
             if fecha_partido == hoy:
                 partidos.append(match)
-
+                print(f"✅ Total partidos encontrados hoy: {len(partidos)}")
     return partidos
 
 
