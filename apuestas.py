@@ -63,26 +63,37 @@ def generar_senales(partidos):
         cuotas_total = [o for o in bookmaker["markets"]
                         if o["key"] == "totals"]
 
-        if cuotas_total:
-            total = cuotas_total[0]["outcomes"][0]
-            if float(total["point"]) == 2.5:
-                over = total["price"]
-                if over >= 1.80:
-                    senales.append(f"""⚽ *{equipos}*
-🔮 Predicción: *Over 2.5 goles*
-📈 Cuota: {over}
-🧠 Análisis: Cuota alta sugiere probabilidad real de +2 goles.
-""")
+        # Variables para saber si hay señales válidas
+        senal_over = None
+        senal_ganador = None
 
+        # Señal por total de goles (over 2.5 o 3.0)
+        if cuotas_total:
+            for total in cuotas_total[0]["outcomes"]:
+                punto = float(total.get("point", 0))
+                over = total["price"]
+                if punto in [2.5, 3.0] and over >= 1.70:
+                    senal_over = f"🔮 *Over {punto} goles*\n📈 Cuota: {over}\n🧠 Análisis: Partido con potencial ofensivo."
+                    break
+
+        # Señal por ganador favorito
         if cuotas_h2h:
             outcomes = cuotas_h2h[0]["outcomes"]
             favorito = min(outcomes, key=lambda x: x["price"])
-            if favorito["price"] <= 1.70:
-                senales.append(f"""⚽ *{equipos}*
-🔮 Predicción: *Gana {favorito["name"]}*
-📈 Cuota: {favorito["price"]}
-🧠 Análisis: Favorito claro con cuota menor a 1.70.
-""")
+            if favorito["price"] <= 1.80:
+                senal_ganador = f"🔮 *Gana {favorito['name']}*\n📈 Cuota: {favorito['price']}\n🧠 Análisis: Favorito con alta probabilidad de victoria."
 
-    print(f"📢 Señales generadas: {len(senales)}")
+        # Construimos el mensaje si hay al menos una señal
+        if senal_over or senal_ganador:
+            mensaje = f"⚽ *{equipos}*\n"
+
+            if senal_over and senal_ganador:
+                mensaje += senal_ganador + "\n\n" + senal_over
+            elif senal_ganador:
+                mensaje += senal_ganador
+            elif senal_over:
+                mensaje += senal_over
+
+            senales.append(mensaje)
+
     return senales
