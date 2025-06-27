@@ -8,21 +8,17 @@ import os
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
 # Ligas populares (códigos de The Odds API)
 LIGAS = [
-    "soccer_epl",                          # Premier League
-    "soccer_spain_la_liga",               # La Liga
-    "soccer_italy_serie_a",               # Serie A
-    "soccer_germany_bundesliga",          # Bundesliga
-    "soccer_france_ligue_one",            # Ligue 1
-    "soccer_brazil_campeonato",           # Brasil
-    "soccer_argentina_primera_division",  # Argentina
-    "soccer_mexico_liga_mex",             # México
-    "soccer_usa_mls"                      # USA
+    "soccer_epl",                        # Premier League (Inglaterra)
+    "soccer_spain_la_liga",             # La Liga (España)
+    "soccer_italy_serie_a",             # Serie A (Italia)
+    "soccer_germany_bundesliga",        # Bundesliga (Alemania)
+    "soccer_france_ligue_one",          # Ligue 1 (Francia)
+    "soccer_brazil_campeonato",         # Brasil Serie A
+    "soccer_usa_mls"                    # USA MLS
 ]
 
 
 def obtener_partidos():
-    hoy = datetime.datetime.utcnow().strftime('%Y-%m-%dT00:00:00Z')
-
     partidos = []
 
     for liga in LIGAS:
