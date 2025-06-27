@@ -2,12 +2,19 @@
 
 import requests
 import datetime
+import os
 
-API_KEY = "232daadb65fac91b4b7a607399ade0f7"
-
+# Asegúrate de tener la variable de entorno BOT_TOKEN configurada
+API_KEY = os.getenv("BOT_TOKEN")
 # Ligas populares (códigos de The Odds API)
-LIGAS = ["soccer_epl", "soccer_la_liga", "soccer_serie_a",
-         "soccer_bundesliga", "soccer_ligue_one"]
+LIGAS = [
+    "soccer_epl",               # Premier League
+    "soccer_la_liga",           # La Liga (España)
+    "soccer_serie_a",           # Serie A (Italia)
+    "soccer_bundesliga",        # Bundesliga (Alemania)
+    "soccer_ligue_one",         # Ligue 1 (Francia)
+    "soccer_colombia_primera_a"  # Liga BetPlay (Colombia)
+]
 
 
 def obtener_partidos():
