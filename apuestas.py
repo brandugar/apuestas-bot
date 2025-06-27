@@ -54,6 +54,10 @@ def generar_senales(partidos):
 
     for partido in partidos:
         equipos = partido["home_team"] + " vs " + partido["away_team"]
+        fecha_hora = datetime.datetime.fromisoformat(
+            partido["commence_time"].replace("Z", "+00:00")
+        ).strftime("%Y-%m-%d %H:%M UTC")
+
         bookmaker = partido["bookmakers"][0] if partido["bookmakers"] else None
 
         if not bookmaker:
@@ -63,11 +67,10 @@ def generar_senales(partidos):
         cuotas_total = [o for o in bookmaker["markets"]
                         if o["key"] == "totals"]
 
-        # Variables para saber si hay señales válidas
         senal_over = None
         senal_ganador = None
 
-        # Señal por total de goles (over 2.5 o 3.0)
+        # Señal Over
         if cuotas_total:
             for total in cuotas_total[0]["outcomes"]:
                 punto = float(total.get("point", 0))
@@ -76,17 +79,17 @@ def generar_senales(partidos):
                     senal_over = f"🔮 *Over {punto} goles*\n📈 Cuota: {over}\n🧠 Análisis: Partido con potencial ofensivo."
                     break
 
-        # Señal por ganador favorito
+        # Señal Ganador
         if cuotas_h2h:
             outcomes = cuotas_h2h[0]["outcomes"]
             favorito = min(outcomes, key=lambda x: x["price"])
             if favorito["price"] <= 1.80:
                 senal_ganador = f"🔮 *Gana {favorito['name']}*\n📈 Cuota: {favorito['price']}\n🧠 Análisis: Favorito con alta probabilidad de victoria."
 
-        # Construimos el mensaje si hay al menos una señal
         if senal_over or senal_ganador:
-            mensaje = f"⚽ *{equipos}*\n"
-
+            mensaje = f"""⚽ *{equipos}*
+🗓 Fecha: *{fecha_hora}*
+"""
             if senal_over and senal_ganador:
                 mensaje += senal_ganador + "\n\n" + senal_over
             elif senal_ganador:
