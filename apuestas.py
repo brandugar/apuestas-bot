@@ -8,6 +8,7 @@ import os
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
 CACHE_FILE_IDS = "senales_enviadas.json"
 CACHE_FILE_DIARIAS = "senales_diarias.json"
+CACHE_FILE_IDS_VIP = "senales_vip_enviadas.json"
 
 LIGAS = [
     "soccer_epl",
@@ -22,6 +23,13 @@ LIGAS = [
 ahora = datetime.datetime.now(
     datetime.timezone.utc) - datetime.timedelta(hours=5)  # Hora Colombia
 hora_actual = ahora.hour
+
+
+def cargar_ids_vip():
+    if not os.path.exists(CACHE_FILE_IDS_VIP):
+        return set()
+    with open(CACHE_FILE_IDS_VIP, "r") as f:
+        return set(json.load(f))
 
 
 def cargar_ids_enviados():
@@ -72,8 +80,12 @@ def obtener_partidos():
 
 def generar_senales(partidos):
     señales = []
+    ids_vip = cargar_ids_vip()
 
     for partido in partidos:
+        if partido["id"] in ids_vip:
+            continue
+
         equipos = partido["home_team"] + " vs " + partido["away_team"]
         partido_id = partido["id"]
         fecha_utc = datetime.datetime.fromisoformat(

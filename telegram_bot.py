@@ -9,6 +9,7 @@ from apuestas import preparar_y_guardar_senales, obtener_senales_para_envio
 # ✅ Carga las variables desde el archivo .env
 load_dotenv()
 
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")  # También lo cargamos desde .env
 # Imagen local que se enviará después de las señales (a las 8am)
