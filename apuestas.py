@@ -19,6 +19,10 @@ LIGAS = [
     "soccer_usa_mls"
 ]
 
+ahora = datetime.datetime.now(
+    datetime.timezone.utc) - datetime.timedelta(hours=5)  # Hora Colombia
+hora_actual = ahora.hour
+
 
 def cargar_ids_enviados():
     if not os.path.exists(CACHE_FILE_IDS):
@@ -36,32 +40,34 @@ def obtener_partidos():
     hoy = datetime.datetime.utcnow().date()
     partidos = []
 
-    for liga in LIGAS:
-        print(f"🔎 Consultando {liga}...")
-        url = f"https://api.the-odds-api.com/v4/sports/{liga}/odds/"
-        params = {
-            "apiKey": API_KEY,
-            "regions": "eu",
-            "markets": "h2h,totals",
-            "dateFormat": "iso",
-        }
+    if hora_actual == 8 or hora_actual == 15:
+        for liga in LIGAS:
+            print(f"🔎 Consultando {liga}...")
+            url = f"https://api.the-odds-api.com/v4/sports/{liga}/odds/"
+            params = {
+                "apiKey": API_KEY,
+                "regions": "eu",
+                "markets": "h2h,totals",
+                "dateFormat": "iso",
+            }
 
-        res = requests.get(url, params=params)
-        if res.status_code != 200:
-            print(f"❌ Error con {liga}: {res.text}")
-            continue
+            res = requests.get(url, params=params)
+            if res.status_code != 200:
+                print(f"❌ Error con {liga}: {res.text}")
+                continue
 
-        data = res.json()
-        for match in data:
-            fecha_partido = datetime.datetime.fromisoformat(
-                match['commence_time'].replace("Z", "+00:00")
-            ).date()
+            data = res.json()
+            for match in data:
+                fecha_partido = datetime.datetime.fromisoformat(
+                    match['commence_time'].replace("Z", "+00:00")).date()
+                if fecha_partido == hoy:
+                    partidos.append(match)
 
-            if fecha_partido == hoy:
-                partidos.append(match)
-
-    print(f"🎯 Total partidos encontrados: {len(partidos)}")
-    return partidos
+        print(f"🎯 Total partidos encontrados: {len(partidos)}")
+        return partidos
+    else:
+        print("⏳ No es hora de buscar partidos. Hora actual:", hora_actual)
+        return []
 
 
 def generar_senales(partidos):
@@ -71,8 +77,7 @@ def generar_senales(partidos):
         equipos = partido["home_team"] + " vs " + partido["away_team"]
         partido_id = partido["id"]
         fecha_utc = datetime.datetime.fromisoformat(
-            partido["commence_time"].replace("Z", "+00:00")
-        )
+            partido["commence_time"].replace("Z", "+00:00"))
         fecha_colombia = fecha_utc - datetime.timedelta(hours=5)
         hora_formateada = fecha_colombia.strftime(
             "%Y-%m-%d %H:%M (hora colombiana)")
@@ -93,29 +98,38 @@ def generar_senales(partidos):
                 punto = float(total.get("point", 0))
                 cuota = total["price"]
                 if punto in [2.5, 3.0] and cuota >= 1.70:
-                    senal_over = f"🔮 *Over {punto} goles*\n📈 Cuota: {cuota}\n🧠 Análisis: Partido con potencial ofensivo."
+                    senal_over = (
+                        f"🔮 *Pronóstico:* Over {punto} goles\n"
+                        f"💸 *Cuota:* {cuota}\n"
+                        f"📈 *Análisis:* Partido con potencial ofensivo."
+                    )
                     break
 
         if cuotas_h2h:
             outcomes = cuotas_h2h[0]["outcomes"]
             favorito = min(outcomes, key=lambda x: x["price"])
             if favorito["price"] <= 1.80:
-                senal_ganador = f"🔮 *Gana {favorito['name']}*\n📈 Cuota: {favorito['price']}\n🧠 Análisis: Favorito con alta probabilidad de victoria."
+                senal_ganador = (
+                    f"🔮 *Pronóstico:* Gana {favorito['name']}\n"
+                    f"💸 *Cuota:* {favorito['price']}\n"
+                    f"📈 *Análisis:* Favorito con alta probabilidad de victoria."
+                )
 
         if senal_over or senal_ganador:
-            mensaje = f"""⚽ *{equipos}*
-🗓 Fecha: *{hora_formateada}*
+            mensaje = f"""📊 *SEÑAL DEL DÍA*
+
+⚽️ *{equipos}*  
+📅 *Fecha:* {hora_formateada}
+
 """
-            if senal_ganador and senal_over:
-                mensaje += senal_ganador + "\n\n" + senal_over
-            elif senal_ganador:
-                mensaje += senal_ganador
-            elif senal_over:
+            if senal_ganador:
+                mensaje += senal_ganador + "\n\n"
+            if senal_over:
                 mensaje += senal_over
 
             señales.append({
                 "id": partido_id,
-                "mensaje": mensaje
+                "mensaje": mensaje.strip()
             })
 
     return señales
@@ -136,15 +150,11 @@ def cargar_senales_diarias():
 def obtener_senales_para_envio(hora_actual):
     todas_senales = cargar_senales_diarias()
     ids_enviados = cargar_ids_enviados()
-
-    # Filtramos solo señales no enviadas aún
     nuevas = [s for s in todas_senales if s["id"] not in ids_enviados]
 
     if hora_actual < 15:
-        # 8am: enviamos 2 primeras señales
         a_enviar = nuevas[:2]
     else:
-        # 3pm: enviamos la señal restante
         a_enviar = nuevas[2:3]
 
     nuevos_ids = set(s["id"] for s in a_enviar)
@@ -157,6 +167,4 @@ def obtener_senales_para_envio(hora_actual):
 def preparar_y_guardar_senales():
     partidos = obtener_partidos()
     todas = generar_senales(partidos)
-
-    # Limitar a solo las 3 primeras por calidad
     guardar_senales_diarias(todas[:3])
