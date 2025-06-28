@@ -2,7 +2,10 @@
 
 import requests
 import datetime
+import json
+import os
 
+CACHE_FILE = "senales_enviadas.json"
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
 
 LIGAS = [
@@ -14,6 +17,18 @@ LIGAS = [
     "soccer_brazil_campeonato",         # Brasil Serie A
     "soccer_usa_mls"                    # USA MLS
 ]
+
+
+def cargar_ids_enviados():
+    if not os.path.exists(CACHE_FILE):
+        return set()
+    with open(CACHE_FILE, "r") as f:
+        return set(json.load(f))
+
+
+def guardar_ids_enviados(ids):
+    with open(CACHE_FILE, "w") as f:
+        json.dump(list(ids), f)
 
 
 def obtener_partidos():
@@ -40,7 +55,7 @@ def obtener_partidos():
             fecha_partido = datetime.datetime.fromisoformat(
                 match['commence_time'].replace("Z", "+00:00")).date()
 
-            if fecha_partido == hoy or fecha_partido == hoy + datetime.timedelta(days=1):
+            if fecha_partido == hoy:
                 equipos = match["home_team"] + " vs " + match["away_team"]
                 print(f"✅ Partido: {equipos} - {match['commence_time']}")
                 partidos.append(match)
@@ -51,8 +66,15 @@ def obtener_partidos():
 
 def generar_senales(partidos):
     senales = []
+    ids_enviados = cargar_ids_enviados()
+
+    nuevos_ids = set()
 
     for partido in partidos:
+        partido_id = partido["id"]
+
+        if partido_id in ids_enviados:
+            continue  # Ya se envió esta señal antes
         equipos = partido["home_team"] + " vs " + partido["away_team"]
         fecha_utc = datetime.datetime.fromisoformat(
             partido["commence_time"].replace("Z", "+00:00")
@@ -97,6 +119,11 @@ def generar_senales(partidos):
             elif senal_over:
                 mensaje += senal_over
 
-            senales.append(mensaje)
+            nuevos_ids.add(partido_id)
+            senales.append(mensaje)  # SOLO si hay señal
+
+    # Actualizamos el cache
+    ids_enviados.update(nuevos_ids)
+    guardar_ids_enviados(ids_enviados)
 
     return senales
