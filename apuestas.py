@@ -5,29 +5,30 @@ import datetime
 import json
 import os
 
-CACHE_FILE = "senales_enviadas.json"
 API_KEY = "232daadb65fac91b4b7a607399ade0f7"
+CACHE_FILE_IDS = "senales_enviadas.json"
+CACHE_FILE_DIARIAS = "senales_diarias.json"
 
 LIGAS = [
-    "soccer_epl",                        # Premier League (Inglaterra)
-    "soccer_spain_la_liga",             # La Liga (España)
-    "soccer_italy_serie_a",             # Serie A (Italia)
-    "soccer_germany_bundesliga",        # Bundesliga (Alemania)
-    "soccer_france_ligue_one",          # Ligue 1 (Francia)
-    "soccer_brazil_campeonato",         # Brasil Serie A
-    "soccer_usa_mls"                    # USA MLS
+    "soccer_epl",
+    "soccer_spain_la_liga",
+    "soccer_italy_serie_a",
+    "soccer_germany_bundesliga",
+    "soccer_france_ligue_one",
+    "soccer_brazil_campeonato",
+    "soccer_usa_mls"
 ]
 
 
 def cargar_ids_enviados():
-    if not os.path.exists(CACHE_FILE):
+    if not os.path.exists(CACHE_FILE_IDS):
         return set()
-    with open(CACHE_FILE, "r") as f:
+    with open(CACHE_FILE_IDS, "r") as f:
         return set(json.load(f))
 
 
 def guardar_ids_enviados(ids):
-    with open(CACHE_FILE, "w") as f:
+    with open(CACHE_FILE_IDS, "w") as f:
         json.dump(list(ids), f)
 
 
@@ -53,11 +54,10 @@ def obtener_partidos():
         data = res.json()
         for match in data:
             fecha_partido = datetime.datetime.fromisoformat(
-                match['commence_time'].replace("Z", "+00:00")).date()
+                match['commence_time'].replace("Z", "+00:00")
+            ).date()
 
             if fecha_partido == hoy:
-                equipos = match["home_team"] + " vs " + match["away_team"]
-                print(f"✅ Partido: {equipos} - {match['commence_time']}")
                 partidos.append(match)
 
     print(f"🎯 Total partidos encontrados: {len(partidos)}")
@@ -65,17 +65,11 @@ def obtener_partidos():
 
 
 def generar_senales(partidos):
-    senales = []
-    ids_enviados = cargar_ids_enviados()
-
-    nuevos_ids = set()
+    señales = []
 
     for partido in partidos:
-        partido_id = partido["id"]
-
-        if partido_id in ids_enviados:
-            continue  # Ya se envió esta señal antes
         equipos = partido["home_team"] + " vs " + partido["away_team"]
+        partido_id = partido["id"]
         fecha_utc = datetime.datetime.fromisoformat(
             partido["commence_time"].replace("Z", "+00:00")
         )
@@ -87,9 +81,9 @@ def generar_senales(partidos):
         if not bookmaker:
             continue
 
-        cuotas_h2h = [o for o in bookmaker["markets"] if o["key"] == "h2h"]
-        cuotas_total = [o for o in bookmaker["markets"]
-                        if o["key"] == "totals"]
+        cuotas_h2h = [m for m in bookmaker["markets"] if m["key"] == "h2h"]
+        cuotas_total = [m for m in bookmaker["markets"]
+                        if m["key"] == "totals"]
 
         senal_over = None
         senal_ganador = None
@@ -97,9 +91,9 @@ def generar_senales(partidos):
         if cuotas_total:
             for total in cuotas_total[0]["outcomes"]:
                 punto = float(total.get("point", 0))
-                over = total["price"]
-                if punto in [2.5, 3.0] and over >= 1.70:
-                    senal_over = f"🔮 *Over {punto} goles*\n📈 Cuota: {over}\n🧠 Análisis: Partido con potencial ofensivo."
+                cuota = total["price"]
+                if punto in [2.5, 3.0] and cuota >= 1.70:
+                    senal_over = f"🔮 *Over {punto} goles*\n📈 Cuota: {cuota}\n🧠 Análisis: Partido con potencial ofensivo."
                     break
 
         if cuotas_h2h:
@@ -119,11 +113,50 @@ def generar_senales(partidos):
             elif senal_over:
                 mensaje += senal_over
 
-            nuevos_ids.add(partido_id)
-            senales.append(mensaje)  # SOLO si hay señal
+            señales.append({
+                "id": partido_id,
+                "mensaje": mensaje
+            })
 
-    # Actualizamos el cache
+    return señales
+
+
+def guardar_senales_diarias(senales):
+    with open(CACHE_FILE_DIARIAS, "w") as f:
+        json.dump(senales, f)
+
+
+def cargar_senales_diarias():
+    if not os.path.exists(CACHE_FILE_DIARIAS):
+        return []
+    with open(CACHE_FILE_DIARIAS, "r") as f:
+        return json.load(f)
+
+
+def obtener_senales_para_envio(hora_actual):
+    todas_senales = cargar_senales_diarias()
+    ids_enviados = cargar_ids_enviados()
+
+    # Filtramos solo señales no enviadas aún
+    nuevas = [s for s in todas_senales if s["id"] not in ids_enviados]
+
+    if hora_actual < 15:
+        # 8am: enviamos 2 primeras señales
+        a_enviar = nuevas[:2]
+    else:
+        # 3pm: enviamos la señal restante
+        a_enviar = nuevas[2:3]
+
+    nuevos_ids = set(s["id"] for s in a_enviar)
     ids_enviados.update(nuevos_ids)
     guardar_ids_enviados(ids_enviados)
 
-    return senales
+    return [s["mensaje"] for s in a_enviar]
+
+
+def preparar_y_guardar_senales():
+    partidos = obtener_partidos()
+    todas = generar_senales(partidos)
+
+    # Limitar a solo las 3 primeras por calidad
+    guardar_senales_diarias(todas[:3])

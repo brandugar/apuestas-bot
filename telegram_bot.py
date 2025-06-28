@@ -1,12 +1,12 @@
-# telegram_bot.py actualizado para manejar dos horarios diarios
+# telegram_bot.py
 
 import os
-from apuestas import obtener_partidos, generar_senales
-import requests
 import datetime
+import requests
+from apuestas import preparar_y_guardar_senales, obtener_senales_para_envio
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = "-1002600259944"  # Canal: Predicciones BR4
+CHANNEL_ID = "-1002600259944"  # Reemplaza por tu canal
 
 
 def enviar_telegram(mensaje):
@@ -16,32 +16,28 @@ def enviar_telegram(mensaje):
         "text": mensaje,
         "parse_mode": "Markdown"
     })
-    print("\n📬 Enviado:", res.status_code, res.text)
+    print("📬 Enviado:", res.status_code, res.text)
 
 
 def main():
     ahora = datetime.datetime.now(
         datetime.timezone.utc) - datetime.timedelta(hours=5)  # Hora Colombia
-    hora_actual = ahora.strftime("%H:%M")
+    hora_actual = ahora.hour
 
-    print(f"🕒 Hora actual Colombia: {hora_actual}")
+    print(f"🕒 Hora Colombia: {ahora.strftime('%H:%M')}")
 
-    # Para las 8am y 3pm
-    # if hora_actual.startswith("08:") or hora_actual.startswith("15:"):
-    print("🕵️ Obteniendo partidos...")
-    partidos = obtener_partidos()
+    if hora_actual == 8:
+        print("⚙️ Preparando señales del día...")
+        preparar_y_guardar_senales()
 
-    print("⚙️ Generando señales...")
-    senales = generar_senales(partidos)
+    print("📡 Obteniendo señales para este horario...")
+    senales = obtener_senales_para_envio(hora_actual)
 
     if not senales:
-        enviar_telegram("📭 No se generaron señales para hoy.")
+        enviar_telegram("📭 No se generaron señales para este horario.")
     else:
-        top_senales = senales[:2]  # Tomamos solo 2 mejores señales
-        for senal in top_senales:
+        for senal in senales:
             enviar_telegram(senal)
-    # else:
-    #     print("⏰ No es hora de enviar señales. Solo se envían a las 8:00am y 3:00pm.")
 
 
 if __name__ == "__main__":

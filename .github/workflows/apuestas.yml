@@ -2,8 +2,8 @@ name: Señales deportivas BR4
 
 on:
   schedule:
-    - cron: "0 13 * * *" # 8:00am Colombia (UTC-5 -> UTC+5 = 13)
-    - cron: "0 20 * * *" # 3:00pm Colombia (UTC-5 -> UTC+5 = 20)
+    - cron: "0 13 * * *" # 8:00am Colombia (UTC-5 → UTC+5 = 13)
+    - cron: "0 20 * * *" # 3:00pm Colombia (UTC-5 → UTC+5 = 20)
   workflow_dispatch:
 
 jobs:
@@ -11,33 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar el repo
+      - name: 🔄 Clonar el repositorio
         uses: actions/checkout@v3
 
-      - name: Restaurar caché de señales enviadas
+      - name: 💾 Restaurar caché de señales enviadas
         uses: actions/cache@v4
         with:
           path: senales_enviadas.json
-          key: senales-key
-          restore-keys: senales-
+          key: senales-cache-${{ github.run_id }}
+          restore-keys: senales-cache-
 
-      - name: Instalar Python
+      - name: 🐍 Instalar Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Instalar dependencias
+      - name: 📦 Instalar dependencias
         run: |
           pip install -r requirements.txt
 
-      - name: Ejecutar bot de apuestas
+      - name: 🤖 Ejecutar bot de apuestas
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           python telegram_bot.py
 
-      - name: Guardar caché actualizado
+      - name: 💾 Guardar caché actualizado
         uses: actions/cache/save@v4
         with:
           path: senales_enviadas.json
-          key: senales-key
+          key: senales-cache-${{ github.run_id }}
